@@ -1,0 +1,57 @@
+#cloud-config
+preserve_hostname: true
+ssh_pwauth: false
+disable_root: true
+growpart:
+  mode: auto
+resize_rootfs: true
+packages:
+  - gnome-shell
+  - gnome-session
+  - gnome-session-wayland-session
+  - gdm
+  - ptyxis
+  - pciutils
+  - strace
+  - gdb
+  - wayland-utils
+  - weston
+  - weston-demo
+  - kmscube
+  - glmark2
+  - vulkan-tools
+  - mesa-demos
+  - glx-utils
+  - mesa-vulkan-drivers
+runcmd:
+  - [hostnamectl, set-hostname, libkrun-guest-tests]
+  - [systemctl, enable, serial-getty@hvc0.service, sshd]
+  - [systemctl, disable, gdm]
+  - [systemctl, enable, getty@tty1.service]
+  - [systemctl, set-default, multi-user.target]
+  - [systemctl, daemon-reload]
+  - [touch, /var/lib/libkrun-guest-ready]
+write_files:
+  - path: /etc/hostname
+    permissions: '0644'
+    content: |
+      libkrun-guest-tests
+  - path: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+    permissions: '0644'
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=-/sbin/agetty --autologin fedora --noclear %I $TERM
+  - path: /etc/profile.d/guest-menu.sh
+    permissions: '0644'
+    content: |
+      if shopt -q login_shell && [ "$(id -un)" = fedora ] && [ "$(tty)" = /dev/tty1 ]; then
+          exec /usr/local/bin/guest-menu
+      fi
+users:
+  - name: fedora
+    groups: [wheel]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    lock_passwd: false
+    plain_text_passwd: fedora
